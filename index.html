@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Planet Quiz</title>
+  <meta name="description" content="How well do you know the Solar System? Answer against the clock and beat your best score." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <main class="stage">
+    <!-- ============ HOME: the game card ============ -->
+    <section id="screen-home" class="screen active">
+      <article class="card">
+        <div class="card-art">
+          <span class="twinkle t1"></span><span class="twinkle t2"></span><span class="twinkle t3"></span>
+          <div class="orbit"><span class="moon"></span></div>
+          <div class="preview">
+            <div class="preview-q">Which planet is biggest?</div>
+            <div class="preview-grid">
+              <div class="preview-opt">Mars</div>
+              <div class="preview-opt correct">Jupiter <svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></div>
+              <div class="preview-opt">Venus</div>
+              <div class="preview-opt">Earth</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <h1>Planet Quiz</h1>
+          <p class="lead">How well do you know the Solar System? Answer against the clock and beat your best score.</p>
+          <ul class="tags">
+            <li>10 questions</li>
+            <li>Timer</li>
+            <li>High score</li>
+          </ul>
+          <div class="best-line" id="home-best" hidden>🏆 Best: <strong id="home-best-val">0</strong></div>
+          <div class="actions">
+            <button class="btn btn-ghost" id="btn-howto">
+              <svg viewBox="0 0 24 24" class="ico"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3V4z"/><path d="M9 9h6M9 13h6"/></svg>
+              How to play
+            </button>
+            <button class="btn btn-play" id="btn-play">
+              <span>Play now</span>
+              <svg viewBox="0 0 24 24" class="ico"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============ GAME ============ -->
+    <section id="screen-game" class="screen">
+      <div class="hud">
+        <button class="hud-btn" id="btn-quit" aria-label="Quit to menu">✕</button>
+        <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="hud-count"><span id="q-num">1</span>/<span id="q-total">10</span></div>
+      </div>
+
+      <div class="hud-row">
+        <div class="score-box">
+          <span class="label">Score</span>
+          <span class="score" id="score">0</span>
+        </div>
+        <div class="timer" id="timer">
+          <svg viewBox="0 0 100 100">
+            <circle class="timer-track" cx="50" cy="50" r="44"/>
+            <circle class="timer-ring" id="timer-ring" cx="50" cy="50" r="44"/>
+          </svg>
+          <span id="timer-text">15</span>
+        </div>
+        <div class="streak-box" id="streak-box">
+          <span class="label">Streak</span>
+          <span class="streak"><span id="streak">0</span>🔥</span>
+        </div>
+      </div>
+
+      <div class="planet-wrap"><div class="planet" id="planet"></div></div>
+
+      <div class="question-card" id="question-card">
+        <h2 id="question">Question</h2>
+      </div>
+
+      <div class="options" id="options"></div>
+
+      <div class="fact" id="fact" hidden></div>
+
+      <div class="float-layer" id="float-layer"></div>
+    </section>
+
+    <!-- ============ RESULTS ============ -->
+    <section id="screen-results" class="screen">
+      <article class="card results-card">
+        <div class="card-art results-art">
+          <span class="twinkle t1"></span><span class="twinkle t2"></span><span class="twinkle t3"></span>
+          <div class="rank-emoji" id="rank-emoji">🚀</div>
+          <div class="rank-title" id="rank-title">Space Cadet</div>
+          <div class="new-best" id="new-best" hidden>NEW HIGH SCORE!</div>
+        </div>
+        <div class="card-body">
+          <div class="final-score"><span id="final-score">0</span><small>points</small></div>
+          <div class="stats">
+            <div class="stat"><b id="stat-correct">0/10</b><span>Correct</span></div>
+            <div class="stat"><b id="stat-streak">0</b><span>Best streak</span></div>
+            <div class="stat"><b id="stat-best">0</b><span>High score</span></div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost" id="btn-home">Menu</button>
+            <button class="btn btn-play" id="btn-again"><span>Play again</span>
+              <svg viewBox="0 0 24 24" class="ico"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></svg>
+            </button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <!-- ============ HOW TO PLAY ============ -->
+  <div class="modal" id="modal-howto" hidden>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="howto-title">
+      <h2 id="howto-title">How to play</h2>
+      <ol class="howto">
+        <li><span>🪐</span><div><b>10 questions</b> about the Solar System, picked at random every round.</div></li>
+        <li><span>⏱️</span><div><b>15 seconds</b> per question. Answer faster to earn a bigger time bonus.</div></li>
+        <li><span>🔥</span><div><b>Build a streak.</b> Every correct answer in a row boosts your multiplier up to ×3.</div></li>
+        <li><span>🏆</span><div><b>Beat your high score.</b> Your best run is saved on this device.</div></li>
+        <li><span>⌨️</span><div>Tip: press <kbd>1</kbd>–<kbd>4</kbd> to answer with your keyboard.</div></li>
+      </ol>
+      <div class="sound-row">
+        <label class="switch"><input type="checkbox" id="sound-toggle" checked /><span></span></label>
+        Sound effects
+      </div>
+      <button class="btn btn-play wide" id="btn-close-howto"><span>Got it!</span></button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
