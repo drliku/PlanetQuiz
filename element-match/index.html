@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Element Match</title>
+  <meta name="description" content="Flip the cards and match each chemical symbol with its element in as few moves as you can." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <main class="stage">
+    <!-- ============ HOME ============ -->
+    <section id="screen-home" class="screen active">
+      <div class="home">
+        <button class="sound-btn" id="sound-btn" aria-label="Toggle sound" aria-pressed="true">🔊</button>
+
+        <div class="hero" aria-hidden="true">
+          <svg class="hero-arc" viewBox="0 0 312 184"><path d="M78 34 C 120 -4, 196 -4, 192 94"/></svg>
+          <div class="mini sym">Fe</div>
+          <div class="mini back"></div>
+          <div class="mini back"></div>
+          <div class="mini back"></div>
+          <div class="mini back"></div>
+          <div class="mini flip">O</div>
+          <div class="mini name">Iron</div>
+          <div class="mini back"></div>
+        </div>
+
+        <h1 class="logo">Element Match</h1>
+        <p class="tagline">Match each symbol to its element in as few moves as you can.</p>
+
+        <div class="levels" id="levels" role="radiogroup" aria-label="Level">
+          <button class="level" role="radio" data-level="easy" id="level-easy"><b>Easy</b><span>6 pairs</span></button>
+          <button class="level" role="radio" data-level="medium" id="level-medium"><b>Medium</b><span>8 pairs</span></button>
+          <button class="level" role="radio" data-level="hard" id="level-hard"><b>Hard</b><span>10 pairs</span></button>
+        </div>
+
+        <button class="btn btn-play btn-start" id="btn-play"><span>Start</span></button>
+
+        <div class="scores-panel">
+          <h2>Best scores <span class="mode-chip" id="scores-mode">Easy</span></h2>
+          <ol class="score-list" id="score-list"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GAME ============ -->
+    <section id="screen-game" class="screen">
+      <div class="hud">
+        <button class="hud-btn" id="btn-quit" aria-label="Quit to menu">✕</button>
+        <div class="hud-stat"><span class="label">Moves</span><b id="moves">0</b></div>
+        <div class="hud-stat"><span class="label">Time</span><b id="time">0:00</b></div>
+        <div class="hud-stat"><span class="label">Pairs</span><b><span id="pairs">0</span>/<span id="pairs-total">6</span></b></div>
+      </div>
+      <div class="banner" id="banner">Memorize!</div>
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+        <svg class="links" id="links" aria-hidden="true"></svg>
+      </div>
+      <div class="fact" id="fact">Find a symbol and its matching element name.</div>
+    </section>
+
+    <!-- ============ RESULTS ============ -->
+    <section id="screen-results" class="screen">
+      <article class="card results-card">
+        <div class="results-art">
+          <div class="stars" id="stars"><span>★</span><span>★</span><span>★</span></div>
+          <div class="rank-title" id="rank-title">Lab Legend</div>
+          <div class="rank-sub" id="rank-sub">Easy</div>
+          <div class="new-best" id="new-best" hidden>NEW BEST SCORE!</div>
+        </div>
+        <div class="card-body">
+          <div class="stats">
+            <div class="stat"><b id="stat-moves">0</b><span>Moves</span></div>
+            <div class="stat"><b id="stat-time">0:00</b><span>Time</span></div>
+            <div class="stat"><b id="stat-combo">0</b><span>Best combo</span></div>
+          </div>
+          <div class="placed" id="placed"></div>
+          <div class="actions">
+            <button class="btn btn-ghost" id="btn-home">Menu</button>
+            <button class="btn btn-play" id="btn-again"><span>Play again</span></button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>

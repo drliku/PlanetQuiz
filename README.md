@@ -18,3 +18,16 @@ python3 -m http.server
 ```
 
 Keys: `1`–`4` to answer, `Esc` to quit.
+
+---
+
+# Element Match
+
+Flip the cards and match each chemical symbol with its element in as few moves as you can.
+
+- Easy (6 pairs), Medium (8 pairs) and Hard (10 pairs, Latin symbols like Fe, Au and Pb)
+- A quick peek at every card before each round
+- Move counter, timer, combo streaks and a fun fact for every match
+- 1–3 stars per round and top 5 best scores per level, saved in your browser
+
+Open `element-match/index.html` to play.
