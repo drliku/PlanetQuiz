@@ -32,7 +32,12 @@
         </div>
 
         <h1 class="logo">Element Match</h1>
-        <p class="tagline">Match each symbol to its element in as few moves as you can.</p>
+        <p class="tagline">Match each symbol to its element. The faster you match, the more points you get.</p>
+
+        <div class="modes" id="modes" role="radiogroup" aria-label="Mode">
+          <button class="mode" role="radio" data-mode="memory" id="mode-memory"><b>🙈 Hide cards</b><span>Flip and remember</span></button>
+          <button class="mode" role="radio" data-mode="match" id="mode-match"><b>👀 Just match</b><span>All cards face up</span></button>
+        </div>
 
         <div class="levels" id="levels" role="radiogroup" aria-label="Level">
           <button class="level" role="radio" data-level="easy" id="level-easy"><b>Easy</b><span>6 pairs</span></button>
@@ -43,7 +48,7 @@
         <button class="btn btn-play btn-start" id="btn-play"><span>Start</span></button>
 
         <div class="scores-panel">
-          <h2>Best scores <span class="mode-chip" id="scores-mode">Easy</span></h2>
+          <h2>Best scores <span class="mode-chip" id="scores-mode">Easy · Hide cards</span></h2>
           <ol class="score-list" id="score-list"></ol>
         </div>
       </div>
@@ -53,9 +58,13 @@
     <section id="screen-game" class="screen">
       <div class="hud">
         <button class="hud-btn" id="btn-quit" aria-label="Quit to menu">✕</button>
+        <div class="hud-stat"><span class="label">Score</span><b id="score">0</b></div>
         <div class="hud-stat"><span class="label">Moves</span><b id="moves">0</b></div>
-        <div class="hud-stat"><span class="label">Time</span><b id="time">0:00</b></div>
         <div class="hud-stat"><span class="label">Pairs</span><b><span id="pairs">0</span>/<span id="pairs-total">6</span></b></div>
+      </div>
+      <div class="speed" id="speed">
+        <div class="speed-bar"><div class="speed-fill" id="speed-fill"></div></div>
+        <div class="speed-val">⚡ <b id="worth">1000</b> pts</div>
       </div>
       <div class="banner" id="banner">Memorize!</div>
       <div class="board-wrap">
@@ -75,6 +84,7 @@
           <div class="new-best" id="new-best" hidden>NEW BEST SCORE!</div>
         </div>
         <div class="card-body">
+          <div class="final-score"><span id="final-score">0</span><small>points</small></div>
           <div class="stats">
             <div class="stat"><b id="stat-moves">0</b><span>Moves</span></div>
             <div class="stat"><b id="stat-time">0:00</b><span>Time</span></div>

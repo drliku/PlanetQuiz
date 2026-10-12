@@ -25,9 +25,10 @@ Keys: `1`–`4` to answer, `Esc` to quit.
 
 Flip the cards and match each chemical symbol with its element in as few moves as you can.
 
+- Two modes: **Hide cards** (flip and remember, with a quick peek first) or **Just match** (all cards face up)
 - Easy (6 pairs), Medium (8 pairs) and Hard (10 pairs, Latin symbols like Fe, Au and Pb)
-- A quick peek at every card before each round
-- Move counter, timer, combo streaks and a fun fact for every match
-- 1–3 stars per round and top 5 best scores per level, saved in your browser
+- Kahoot-style scoring: an instant match is worth 1,000 points, dropping to 500 as the speed bar drains; the bar refills after every match
+- Combo bonus of +100 per match in a row (up to +500) and a fun fact for every match
+- 1–3 stars per round and top 5 best scores per mode and level, saved in your browser
 
 Open `element-match/index.html` to play.

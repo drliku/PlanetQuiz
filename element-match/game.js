@@ -2,15 +2,23 @@
   "use strict";
 
   const TOP_SCORES = 5;
-  const SCORES_KEY = (l) => "elementmatch.scores." + l;
+  const SCORES_KEY = (mode, level) => `elementmatch.points.${mode}.${level}`;
   const LEVEL_KEY = "elementmatch.level";
+  const MODE_KEY = "elementmatch.mode";
   const SOUND_KEY = "elementmatch.sound";
 
+  // Kahoot-style: a match made instantly is worth 1000, dropping to 500 once the
+  // speed window runs out. The window restarts after every match.
+  const MAX_POINTS = 1000;
+  const COMBO_BONUS = 100;
+  const COMBO_BONUS_CAP = 500;
+
   const LEVELS = {
-    easy:   { label: "Easy",   pairs: 6,  cols: 4, peek: 3000 },
-    medium: { label: "Medium", pairs: 8,  cols: 4, peek: 2000 },
-    hard:   { label: "Hard",   pairs: 10, cols: 5, peek: 1500 },
+    easy:   { label: "Easy",   pairs: 6,  cols: 4, peek: 3000, window: { memory: 8,  match: 4 } },
+    medium: { label: "Medium", pairs: 8,  cols: 4, peek: 2000, window: { memory: 10, match: 5 } },
+    hard:   { label: "Hard",   pairs: 10, cols: 5, peek: 1500, window: { memory: 12, match: 6 } },
   };
+  const MODES = { memory: "Hide cards", match: "Just match" };
 
   // [symbol, name, atomic number, category, fact]
   const POOLS = {
@@ -161,26 +169,26 @@
     window.scrollTo(0, 0);
   }
 
-  // ---------- best scores (fewest moves, then fastest) ----------
-  function getScores(level) {
+  // ---------- best scores (most points) ----------
+  function getScores(mode, level) {
     try {
-      const list = JSON.parse(store.get(SCORES_KEY(level), "[]"));
+      const list = JSON.parse(store.get(SCORES_KEY(mode, level), "[]"));
       return Array.isArray(list) ? list : [];
     } catch { return []; }
   }
-  function addScore(level, entry) {
-    const list = getScores(level);
+  function addScore(mode, level, entry) {
+    const list = getScores(mode, level);
     list.push(entry);
-    list.sort((a, b) => a.moves - b.moves || a.time - b.time || a.t - b.t);
+    list.sort((a, b) => b.points - a.points || a.moves - b.moves || a.t - b.t);
     const top = list.slice(0, TOP_SCORES);
-    store.set(SCORES_KEY(level), JSON.stringify(top));
+    store.set(SCORES_KEY(mode, level), JSON.stringify(top));
     return top.indexOf(entry) + 1;
   }
   function renderScores(highlightT) {
-    $("scores-mode").textContent = LEVELS[state.level].label;
+    $("scores-mode").textContent = `${LEVELS[state.level].label} · ${MODES[state.mode]}`;
     const ol = $("score-list");
     ol.innerHTML = "";
-    const list = getScores(state.level);
+    const list = getScores(state.mode, state.level);
     if (!list.length) {
       const li = document.createElement("li");
       li.className = "empty";
@@ -191,24 +199,32 @@
     for (const s of list) {
       const li = document.createElement("li");
       if (s.t === highlightT) li.className = "fresh";
-      const date = new Date(s.t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-      li.innerHTML = `<span class="meta">${fmtTime(s.time)} · ${date}</span><span class="pts">${s.moves} moves</span>`;
+      li.innerHTML = `<span class="meta">${s.moves} moves · ${fmtTime(s.time)}</span><span class="pts">${s.points.toLocaleString()}</span>`;
       ol.appendChild(li);
     }
   }
 
   // ---------- game state ----------
   const savedLevel = store.get(LEVEL_KEY, "easy");
+  const savedMode = store.get(MODE_KEY, "memory");
   const state = {
     level: LEVELS[savedLevel] ? savedLevel : "easy",
-    open: [], moves: 0, matched: 0, combo: 0, bestCombo: 0,
-    started: false, startAt: 0, timerId: null, busy: true, missId: null, peekIds: [], lastT: 0,
+    mode: MODES[savedMode] ? savedMode : "memory",
+    open: [], moves: 0, matched: 0, combo: 0, bestCombo: 0, points: 0,
+    started: false, startAt: 0, windowAt: 0, timerId: null, busy: true, missId: null, peekIds: [], lastT: 0,
   };
+  const speedWindow = () => LEVELS[state.level].window[state.mode];
 
   function setLevel(level) {
     state.level = level;
     store.set(LEVEL_KEY, level);
     document.querySelectorAll(".level").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.level === level)));
+    renderScores();
+  }
+  function setMode(mode) {
+    state.mode = mode;
+    store.set(MODE_KEY, mode);
+    document.querySelectorAll(".mode").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.mode === mode)));
     renderScores();
   }
 
@@ -222,6 +238,21 @@
 
   function elapsed() { return state.started ? (performance.now() - state.startAt) / 1000 : 0; }
 
+  function speedPoints() {
+    const t = (performance.now() - state.windowAt) / 1000;
+    const k = Math.min(Math.max(t / speedWindow(), 0), 1);
+    return Math.round(MAX_POINTS * (1 - k / 2));
+  }
+
+  function paintSpeed() {
+    const pts = state.started ? speedPoints() : MAX_POINTS;
+    const frac = (pts - MAX_POINTS / 2) / (MAX_POINTS / 2);
+    $("speed-fill").style.width = frac * 100 + "%";
+    $("worth").textContent = pts;
+    $("speed").classList.toggle("slow", frac <= 0);
+    $("speed").classList.toggle("paused", !state.started);
+  }
+
   function startGame() {
     sfx.click();
     clearTimers();
@@ -233,13 +264,16 @@
       cards.push({ id, kind: "name", sym, name, num, cat, fact });
     });
 
-    Object.assign(state, { open: [], moves: 0, matched: 0, combo: 0, bestCombo: 0, started: false, busy: true });
+    Object.assign(state, { open: [], moves: 0, matched: 0, combo: 0, bestCombo: 0, points: 0, started: false, busy: true });
+    $("score").textContent = "0";
     $("moves").textContent = "0";
-    $("time").textContent = "0:00";
     $("pairs").textContent = "0";
     $("pairs-total").textContent = cfg.pairs;
     $("links").innerHTML = "";
-    setFact("Find a symbol and its matching element name.");
+    paintSpeed();
+    setFact(state.mode === "match"
+      ? "Tap a symbol, then tap its element name. Be quick!"
+      : "Find a symbol and its matching element name.");
 
     const board = $("board");
     board.style.setProperty("--cols", cfg.cols);
@@ -248,21 +282,37 @@
       const b = document.createElement("button");
       b.className = "tile";
       b.style.animationDelay = i * 35 + "ms";
-      b.setAttribute("aria-label", "Hidden card");
       b._card = c;
       const front = c.kind === "sym"
         ? `<span class="num">${c.num}</span><span class="sym">${c.sym}</span><span class="cat">${c.cat}</span>`
         : `<span class="nm${c.name.length > 7 ? " long" : ""}">${c.name}</span>`;
       b.innerHTML = `<span class="tile-inner"><span class="face back"></span><span class="face front">${front}</span></span>`;
-      b.addEventListener("click", () => flip(b));
+      label(b);
+      b.addEventListener("click", () => pick(b));
       board.appendChild(b);
     });
 
     show("game");
-    peek(cfg.peek);
+    if (state.mode === "match") countdown();
+    else peek(cfg.peek);
   }
 
-  // Show every card briefly so players can memorize, then flip them down.
+  function label(tile) {
+    const c = tile._card;
+    const visible = state.mode === "match" || tile.classList.contains("up") || tile.classList.contains("matched");
+    tile.setAttribute("aria-label", !visible ? "Hidden card" : c.kind === "sym" ? `Symbol ${c.sym}` : c.name);
+  }
+
+  function go() {
+    setBanner("Go!", true);
+    sfx.go();
+    state.busy = false;
+    state.started = true;
+    state.startAt = state.windowAt = performance.now();
+    state.timerId = setInterval(paintSpeed, 50);
+  }
+
+  // Memory mode: show every card briefly, then flip them down.
   function peek(ms) {
     const tiles = [...$("board").children];
     const dealMs = tiles.length * 35 + 450;
@@ -274,10 +324,17 @@
     }, dealMs));
     state.peekIds.push(setTimeout(() => {
       tiles.forEach((t) => t.classList.remove("up"));
-      setBanner("Go!", true);
-      sfx.go();
-      state.busy = false;
+      go();
     }, dealMs + ms));
+  }
+
+  // Match mode: cards stay face up, with a 3-2-1 countdown.
+  function countdown() {
+    const tiles = [...$("board").children];
+    const dealMs = tiles.length * 35 + 450;
+    state.peekIds.push(setTimeout(() => tiles.forEach((t) => t.classList.add("up")), dealMs));
+    [3, 2, 1].forEach((n, i) => state.peekIds.push(setTimeout(() => { setBanner(String(n), true); sfx.flip(); }, i * 700)));
+    state.peekIds.push(setTimeout(go, Math.max(2100, dealMs + 300)));
   }
 
   function setBanner(text, pop = false, combo = false) {
@@ -293,25 +350,34 @@
     el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
   }
 
-  function startClock() {
-    state.started = true;
-    state.startAt = performance.now();
-    state.timerId = setInterval(() => { $("time").textContent = fmtTime(elapsed()); }, 250);
-  }
-
-  function flip(tile) {
-    if (state.busy || tile.classList.contains("up") || tile.classList.contains("matched")) return;
+  function pick(tile) {
+    if (state.busy || tile.classList.contains("matched")) return;
+    if (state.mode === "match") return pickFaceUp(tile);
+    if (tile.classList.contains("up")) return;
     // Clicking a third card while a miss is still showing: hide the miss right away.
     if (state.open.length === 2) hideMiss();
-    if (!state.started) startClock();
 
     tile.classList.add("up");
-    const c = tile._card;
-    tile.setAttribute("aria-label", c.kind === "sym" ? `Symbol ${c.sym}` : c.name);
+    label(tile);
     sfx.flip();
     state.open.push(tile);
-    if (state.open.length < 2) return;
+    if (state.open.length === 2) judge();
+  }
 
+  function pickFaceUp(tile) {
+    if (state.open.length === 2) hideMiss();
+    if (state.open[0] === tile) {          // tap again to unselect
+      tile.classList.remove("picked");
+      state.open = [];
+      return;
+    }
+    tile.classList.add("picked");
+    sfx.flip();
+    state.open.push(tile);
+    if (state.open.length === 2) judge();
+  }
+
+  function judge() {
     state.moves++;
     bump($("moves"), state.moves);
     const [a, b] = state.open;
@@ -320,19 +386,28 @@
   }
 
   function onMatch(a, b) {
+    const base = speedPoints();
+    const bonus = Math.min(state.combo * COMBO_BONUS, COMBO_BONUS_CAP);
+    const gained = base + bonus;
+    state.points += gained;
+    state.windowAt = performance.now();
+
     state.open = [];
     state.matched++;
     state.combo++;
     state.bestCombo = Math.max(state.bestCombo, state.combo);
-    [a, b].forEach((t) => { t.classList.remove("up"); t.classList.add("matched"); t.disabled = true; });
+    [a, b].forEach((t) => { t.classList.remove("picked"); t.classList.add("up", "matched"); t.disabled = true; label(t); });
     bump($("pairs"), state.matched);
+    bump($("score"), state.points.toLocaleString());
     sfx.match(state.combo);
     drawLink(a, b);
+    floater(b, `+${gained}`);
 
     const c = a._card;
     setFact(`<b>${c.sym} = ${c.name}</b> · ${c.fact}`);
-    if (state.combo >= 2) setBanner(`🔥 Combo ×${state.combo}!`, true, true);
-    else setBanner(["Nice!", "Match!", "Great!", "Bonded! ⚗️"][(Math.random() * 4) | 0], true);
+    const speedWord = base >= 900 ? "⚡ Lightning fast!" : base >= 750 ? "Quick!" : "Match!";
+    if (state.combo >= 2) setBanner(`🔥 Combo ×${state.combo}  +${bonus} bonus`, true, true);
+    else setBanner(speedWord, true);
 
     const r = b.getBoundingClientRect();
     burst(r.left + r.width / 2, r.top + r.height / 2, 20 + state.combo * 8, 7);
@@ -350,14 +425,15 @@
     b.classList.add("wrong");
     sfx.miss();
     setBanner("Not a pair", true);
-    state.missId = setTimeout(hideMiss, 900);
+    state.missId = setTimeout(hideMiss, state.mode === "match" ? 450 : 900);
   }
 
   function hideMiss() {
     clearTimeout(state.missId);
     state.open.forEach((t) => {
-      t.classList.remove("up", "wrong");
-      t.setAttribute("aria-label", "Hidden card");
+      t.classList.remove("wrong", "picked");
+      if (state.mode === "memory") t.classList.remove("up");
+      label(t);
     });
     state.open = [];
   }
@@ -377,6 +453,19 @@
     setTimeout(() => p.remove(), 1500);
   }
 
+  function floater(tile, text) {
+    const wrap = tile.closest(".board-wrap");
+    const host = wrap.getBoundingClientRect();
+    const r = tile.getBoundingClientRect();
+    const f = document.createElement("div");
+    f.className = "floater";
+    f.textContent = text;
+    f.style.left = r.left - host.left + r.width / 2 + "px";
+    f.style.top = r.top - host.top + r.height / 2 + "px";
+    wrap.appendChild(f);
+    setTimeout(() => f.remove(), 1000);
+  }
+
   function bump(el, value) {
     el.textContent = value;
     el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
@@ -386,22 +475,33 @@
     clearTimers();
     const cfg = LEVELS[state.level];
     const time = elapsed();
-    const entry = { moves: state.moves, time: Math.round(time), t: Date.now() };
-    const place = addScore(state.level, entry);
+    const entry = { points: state.points, moves: state.moves, time: Math.round(time), t: Date.now() };
+    const place = addScore(state.mode, state.level, entry);
     state.lastT = place ? entry.t : 0;
 
-    const stars = state.moves <= cfg.pairs + 2 ? 3 : state.moves <= Math.round(cfg.pairs * 1.8) ? 2 : 1;
+    const ratio = state.points / (cfg.pairs * MAX_POINTS);
+    const stars = ratio >= 0.9 ? 3 : ratio >= 0.7 ? 2 : 1;
     [...$("stars").children].forEach((s, i) => s.classList.toggle("on", i < stars));
     $("rank-title").textContent = ["Lab Rookie", "Chem Champ", "Lab Legend"][stars - 1];
-    $("rank-sub").textContent = cfg.label;
+    $("rank-sub").textContent = `${cfg.label} · ${MODES[state.mode]}`;
     $("new-best").hidden = place !== 1;
-    $("placed").textContent = place > 1 ? `You placed #${place} on the ${cfg.label} best scores!` : "";
+    $("placed").textContent = place > 1 ? `You placed #${place} on the best scores!` : "";
     $("stat-moves").textContent = state.moves;
     $("stat-time").textContent = fmtTime(time);
     $("stat-combo").textContent = "×" + state.bestCombo;
+    $("final-score").textContent = "0";
 
     show("results");
     renderScores(state.lastT);
+
+    const el = $("final-score");
+    const start = performance.now();
+    (function step(now) {
+      const k = Math.min((now - start) / 1200, 1);
+      el.textContent = Math.round(state.points * (1 - Math.pow(1 - k, 3))).toLocaleString();
+      if (k < 1) requestAnimationFrame(step);
+    })(start);
+
     sfx.win();
     const fire = (i) => {
       burst(innerWidth * (0.2 + Math.random() * 0.6), innerHeight * (0.15 + Math.random() * 0.3), 60, 11);
@@ -425,6 +525,9 @@
   document.querySelectorAll(".level").forEach((b) =>
     b.addEventListener("click", () => { sfx.click(); setLevel(b.dataset.level); })
   );
+  document.querySelectorAll(".mode").forEach((b) =>
+    b.addEventListener("click", () => { sfx.click(); setMode(b.dataset.mode); })
+  );
 
   const soundBtn = $("sound-btn");
   const paintSound = () => {
@@ -445,5 +548,6 @@
   addEventListener("resize", resizeConfetti);
   resizeConfetti();
   paintSound();
+  setMode(state.mode);
   setLevel(state.level);
 })();
