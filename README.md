@@ -32,3 +32,17 @@ Flip the cards and match each chemical symbol with its element in as few moves a
 - 1–3 stars per round and top 5 best scores per mode and level, saved in your browser
 
 Open `element-match/index.html` to play.
+
+---
+
+# Neuron Maze
+
+Guide a signal through a maze of neurons to the brain before it fades.
+
+- Easy, Medium and Hard levels with bigger mazes and longer timers; 3 fresh random mazes per run
+- Kahoot-style scoring: reaching the brain instantly is worth 1,000 points, dropping to 500 at the time limit; a faded signal scores 0
+- Grab ✦ sparks for +3 seconds and +100 points
+- Arrow keys or WASD to move, on-screen pad for touch, swipe to dash down a corridor
+- Top 5 best scores per level, saved in your browser
+
+Open `neuron-maze/index.html` to play.

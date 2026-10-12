@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Neuron Maze</title>
+  <meta name="description" content="Guide a signal through a maze of neurons to the brain before it fades." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <main class="stage">
+    <!-- ============ HOME ============ -->
+    <section id="screen-home" class="screen active">
+      <div class="home">
+        <button class="sound-btn" id="sound-btn" aria-label="Toggle sound" aria-pressed="true">🔊</button>
+        <div class="hero"><canvas id="hero" aria-hidden="true"></canvas></div>
+
+        <h1 class="logo">Neuron Maze</h1>
+        <p class="tagline">Guide the signal to the brain before it fades. The faster you get there, the more points you score.</p>
+
+        <div class="levels" id="levels" role="radiogroup" aria-label="Level">
+          <button class="level" role="radio" data-level="easy" id="level-easy"><b>Easy</b><span>Small mazes</span></button>
+          <button class="level" role="radio" data-level="medium" id="level-medium"><b>Medium</b><span>Bigger mazes</span></button>
+          <button class="level" role="radio" data-level="hard" id="level-hard"><b>Hard</b><span>Huge mazes</span></button>
+        </div>
+
+        <button class="btn btn-play btn-start" id="btn-play"><span>Start</span></button>
+
+        <div class="scores-panel">
+          <h2>Best scores <span class="mode-chip" id="scores-mode">Easy</span></h2>
+          <ol class="score-list" id="score-list"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ GAME ============ -->
+    <section id="screen-game" class="screen">
+      <div class="hud">
+        <button class="hud-btn" id="btn-quit" aria-label="Quit to menu">✕</button>
+        <div class="hud-stat"><span class="label">Score</span><b id="score">0</b></div>
+        <div class="hud-stat"><span class="label">Maze</span><b><span id="maze-num">1</span>/<span id="maze-total">3</span></b></div>
+        <div class="hud-stat"><span class="label">Sparks</span><b id="sparks">0</b></div>
+      </div>
+
+      <div class="signal" id="signal">
+        <span class="signal-label">Signal</span>
+        <div class="signal-bar"><div class="signal-fill" id="signal-fill"></div></div>
+        <div class="signal-val">⚡ <b id="worth">1000</b></div>
+      </div>
+
+      <div class="maze-wrap" id="maze-wrap">
+        <canvas id="maze" aria-label="Maze. Use the arrow keys to move the signal."></canvas>
+        <div class="overlay" id="overlay" hidden></div>
+      </div>
+
+      <div class="dpad" aria-label="Move">
+        <button class="pad up" data-dir="N" aria-label="Up">▲</button>
+        <button class="pad left" data-dir="W" aria-label="Left">◀</button>
+        <button class="pad down" data-dir="S" aria-label="Down">▼</button>
+        <button class="pad right" data-dir="E" aria-label="Right">▶</button>
+      </div>
+      <p class="hint">Arrow keys or WASD to move · Swipe on the maze to dash · Grab ✦ sparks for extra time</p>
+    </section>
+
+    <!-- ============ RESULTS ============ -->
+    <section id="screen-results" class="screen">
+      <article class="card">
+        <div class="results-art">
+          <div class="stars" id="stars"><span>★</span><span>★</span><span>★</span></div>
+          <div class="rank-title" id="rank-title">Brain Boss</div>
+          <div class="rank-sub" id="rank-sub">Easy</div>
+          <div class="new-best" id="new-best" hidden>NEW BEST SCORE!</div>
+        </div>
+        <div class="card-body">
+          <div class="final-score"><span id="final-score">0</span><small>points</small></div>
+          <div class="stats">
+            <div class="stat"><b id="stat-cleared">0/3</b><span>Mazes</span></div>
+            <div class="stat"><b id="stat-sparks">0</b><span>Sparks</span></div>
+            <div class="stat"><b id="stat-time">0:00</b><span>Time</span></div>
+          </div>
+          <div class="placed" id="placed"></div>
+          <div class="actions">
+            <button class="btn btn-ghost" id="btn-home">Menu</button>
+            <button class="btn btn-play" id="btn-again"><span>Play again</span></button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
