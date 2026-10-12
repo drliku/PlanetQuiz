@@ -15,43 +15,27 @@
   <canvas id="confetti" aria-hidden="true"></canvas>
 
   <main class="stage">
-    <!-- ============ HOME: the game card ============ -->
+    <!-- ============ HOME ============ -->
     <section id="screen-home" class="screen active">
-      <article class="card">
-        <div class="card-art">
-          <span class="twinkle t1"></span><span class="twinkle t2"></span><span class="twinkle t3"></span>
-          <div class="orbit"><span class="moon"></span></div>
-          <div class="preview">
-            <div class="preview-q">Which planet is biggest?</div>
-            <div class="preview-grid">
-              <div class="preview-opt">Mars</div>
-              <div class="preview-opt correct">Jupiter <svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg></div>
-              <div class="preview-opt">Venus</div>
-              <div class="preview-opt">Earth</div>
-            </div>
-          </div>
+      <div class="home">
+        <button class="sound-btn" id="sound-btn" aria-label="Toggle sound" aria-pressed="true">🔊</button>
+        <div class="logo-planet" aria-hidden="true"><div class="logo-orbit"><span class="moon"></span></div></div>
+        <h1 class="logo">Planet Quiz</h1>
+        <p class="tagline">The faster you answer, the more points you get.</p>
+
+        <div class="difficulty" id="difficulty" role="radiogroup" aria-label="Difficulty">
+          <button class="diff" role="radio" data-diff="easy" id="diff-easy"><b>Easy</b><span>20s</span></button>
+          <button class="diff" role="radio" data-diff="medium" id="diff-medium"><b>Medium</b><span>15s</span></button>
+          <button class="diff" role="radio" data-diff="hard" id="diff-hard"><b>Hard</b><span>12s</span></button>
         </div>
-        <div class="card-body">
-          <h1>Planet Quiz</h1>
-          <p class="lead">How well do you know the Solar System? Answer against the clock and beat your best score.</p>
-          <ul class="tags">
-            <li>10 questions</li>
-            <li>Timer</li>
-            <li>High score</li>
-          </ul>
-          <div class="best-line" id="home-best" hidden>🏆 Best: <strong id="home-best-val">0</strong></div>
-          <div class="actions">
-            <button class="btn btn-ghost" id="btn-howto">
-              <svg viewBox="0 0 24 24" class="ico"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3V4z"/><path d="M9 9h6M9 13h6"/></svg>
-              How to play
-            </button>
-            <button class="btn btn-play" id="btn-play">
-              <span>Play now</span>
-              <svg viewBox="0 0 24 24" class="ico"><path d="M8 5l11 7-11 7z" fill="currentColor"/></svg>
-            </button>
-          </div>
+
+        <button class="btn btn-play btn-start" id="btn-play"><span>Start</span></button>
+
+        <div class="scores-panel">
+          <h2>Highest scores <span class="mode-chip" id="scores-mode">Easy</span></h2>
+          <ol class="score-list" id="score-list"></ol>
         </div>
-      </article>
+      </div>
     </section>
 
     <!-- ============ GAME ============ -->
@@ -80,6 +64,8 @@
         </div>
       </div>
 
+      <div class="worth" id="worth">⚡ <b id="worth-val">1000</b> pts</div>
+
       <div class="planet-wrap"><div class="planet" id="planet"></div></div>
 
       <div class="question-card" id="question-card">
@@ -100,6 +86,7 @@
           <span class="twinkle t1"></span><span class="twinkle t2"></span><span class="twinkle t3"></span>
           <div class="rank-emoji" id="rank-emoji">🚀</div>
           <div class="rank-title" id="rank-title">Space Cadet</div>
+          <div class="rank-sub" id="rank-sub">Easy</div>
           <div class="new-best" id="new-best" hidden>NEW HIGH SCORE!</div>
         </div>
         <div class="card-body">
@@ -107,8 +94,9 @@
           <div class="stats">
             <div class="stat"><b id="stat-correct">0/10</b><span>Correct</span></div>
             <div class="stat"><b id="stat-streak">0</b><span>Best streak</span></div>
-            <div class="stat"><b id="stat-best">0</b><span>High score</span></div>
+            <div class="stat"><b id="stat-speed">0.0s</b><span>Avg speed</span></div>
           </div>
+          <div class="placed" id="placed"></div>
           <div class="actions">
             <button class="btn btn-ghost" id="btn-home">Menu</button>
             <button class="btn btn-play" id="btn-again"><span>Play again</span>
@@ -119,25 +107,6 @@
       </article>
     </section>
   </main>
-
-  <!-- ============ HOW TO PLAY ============ -->
-  <div class="modal" id="modal-howto" hidden>
-    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="howto-title">
-      <h2 id="howto-title">How to play</h2>
-      <ol class="howto">
-        <li><span>🪐</span><div><b>10 questions</b> about the Solar System, picked at random every round.</div></li>
-        <li><span>⏱️</span><div><b>15 seconds</b> per question. Answer faster to earn a bigger time bonus.</div></li>
-        <li><span>🔥</span><div><b>Build a streak.</b> Every correct answer in a row boosts your multiplier up to ×3.</div></li>
-        <li><span>🏆</span><div><b>Beat your high score.</b> Your best run is saved on this device.</div></li>
-        <li><span>⌨️</span><div>Tip: press <kbd>1</kbd>–<kbd>4</kbd> to answer with your keyboard.</div></li>
-      </ol>
-      <div class="sound-row">
-        <label class="switch"><input type="checkbox" id="sound-toggle" checked /><span></span></label>
-        Sound effects
-      </div>
-      <button class="btn btn-play wide" id="btn-close-howto"><span>Got it!</span></button>
-    </div>
-  </div>
 
   <script src="game.js"></script>
 </body>

@@ -2,9 +2,19 @@
   "use strict";
 
   const QUESTIONS_PER_ROUND = 10;
-  const SECONDS_PER_QUESTION = 15;
-  const BEST_KEY = "planetquiz.best";
+  const MAX_POINTS = 1000;          // Kahoot-style: instant answer = 1000, last second = 500
+  const STREAK_BONUS = 100;         // per correct answer in a row, capped
+  const STREAK_BONUS_CAP = 500;
+  const TOP_SCORES = 5;
+  const SCORES_KEY = (d) => "planetquiz.scores." + d;
+  const DIFF_KEY = "planetquiz.difficulty";
   const SOUND_KEY = "planetquiz.sound";
+
+  const DIFFICULTIES = {
+    easy:   { label: "Easy",   seconds: 20 },
+    medium: { label: "Medium", seconds: 15 },
+    hard:   { label: "Hard",   seconds: 12 },
+  };
 
   // Planet looks used for the floating planet above each question.
   const LOOKS = {
@@ -19,58 +29,114 @@
     sun:     { c1: "#fff3a0", c2: "#ff8a1e" },
     moon:    { c1: "#f1f1f1", c2: "#8a8a92" },
     pluto:   { c1: "#f0d9c4", c2: "#9b7a63" },
+    europa:  { c1: "#fff6e6", c2: "#b89c7a" },
+    star:    { c1: "#ffffff", c2: "#9fb8ff" },
   };
 
-  const BANK = [
-    { q: "Which planet is biggest?", a: "Jupiter", w: ["Mars", "Venus", "Earth"], look: "jupiter",
-      fact: "Jupiter is so big that <b>over 1,300 Earths</b> could fit inside it." },
-    { q: "Which planet is closest to the Sun?", a: "Mercury", w: ["Venus", "Mars", "Earth"], look: "mercury",
-      fact: "A year on Mercury lasts only <b>88 Earth days</b>." },
-    { q: "Which planet is known as the Red Planet?", a: "Mars", w: ["Jupiter", "Venus", "Mercury"], look: "mars",
-      fact: "Mars looks red because its soil is full of <b>iron oxide</b> — rust!" },
-    { q: "Which planet has the most famous rings?", a: "Saturn", w: ["Neptune", "Mars", "Earth"], look: "saturn",
-      fact: "Saturn's rings are mostly <b>chunks of ice and rock</b>, some as big as houses." },
-    { q: "Which is the hottest planet?", a: "Venus", w: ["Mercury", "Mars", "Jupiter"], look: "venus",
-      fact: "Venus's thick CO₂ atmosphere traps heat, reaching about <b>465 °C</b>." },
-    { q: "How many planets are in our Solar System?", a: "8", w: ["9", "7", "10"], look: "earth",
-      fact: "Pluto was reclassified as a <b>dwarf planet</b> in 2006." },
-    { q: "Which planet spins on its side?", a: "Uranus", w: ["Saturn", "Neptune", "Venus"], look: "uranus",
-      fact: "Uranus is tilted about <b>98°</b>, so it rolls around the Sun like a ball." },
-    { q: "Which planet is farthest from the Sun?", a: "Neptune", w: ["Uranus", "Saturn", "Jupiter"], look: "neptune",
-      fact: "Neptune has the fastest winds in the Solar System — over <b>2,000 km/h</b>." },
-    { q: "What is the Great Red Spot?", a: "A giant storm", w: ["A volcano", "A crater", "An ocean"], look: "jupiter",
-      fact: "Jupiter's Great Red Spot is a storm <b>wider than Earth</b> that has raged for centuries." },
-    { q: "What is the Sun?", a: "A star", w: ["A planet", "A comet", "A moon"], look: "sun",
-      fact: "The Sun holds about <b>99.8%</b> of all the mass in the Solar System." },
-    { q: "Which planet has the most known moons?", a: "Saturn", w: ["Earth", "Mars", "Mercury"], look: "saturn",
-      fact: "Saturn has <b>over 140</b> confirmed moons." },
-    { q: "Which planet do we live on?", a: "Earth", w: ["Mars", "Venus", "Neptune"], look: "earth",
-      fact: "Earth is the only planet known to have <b>liquid water on its surface</b>." },
-    { q: "What is the name of Earth's natural satellite?", a: "The Moon", w: ["Phobos", "Titan", "Europa"], look: "moon",
-      fact: "The Moon drifts about <b>3.8 cm</b> farther from Earth every year." },
-    { q: "Which planet has the tallest volcano?", a: "Mars", w: ["Earth", "Venus", "Jupiter"], look: "mars",
-      fact: "Olympus Mons on Mars is nearly <b>3× taller than Mount Everest</b>." },
-    { q: "How long does sunlight take to reach Earth?", a: "About 8 minutes", w: ["About 8 seconds", "About 8 hours", "About 8 days"], look: "sun",
-      fact: "Light travels <b>~150 million km</b> from the Sun to reach us." },
-    { q: "Which planet has the shortest day?", a: "Jupiter", w: ["Earth", "Mercury", "Mars"], look: "jupiter",
-      fact: "Jupiter spins once every <b>~10 hours</b>." },
-    { q: "Which planet has a longer day than its year?", a: "Venus", w: ["Mars", "Earth", "Saturn"], look: "venus",
-      fact: "One spin of Venus takes <b>243 Earth days</b>, but its year is only 225." },
-    { q: "What is Pluto now classified as?", a: "Dwarf planet", w: ["Moon", "Asteroid", "Gas giant"], look: "pluto",
-      fact: "Pluto has a giant <b>heart-shaped glacier</b> named Tombaugh Regio." },
-    { q: "Which belt lies between Mars and Jupiter?", a: "Asteroid belt", w: ["Kuiper belt", "Van Allen belt", "Orion belt"], look: "mars",
-      fact: "The largest object in the asteroid belt is the dwarf planet <b>Ceres</b>." },
-    { q: "Which planet could float in a giant bathtub?", a: "Saturn", w: ["Jupiter", "Earth", "Mercury"], look: "saturn",
-      fact: "Saturn is <b>less dense than water</b>!" },
-    { q: "What colour does Neptune appear?", a: "Blue", w: ["Red", "Yellow", "Green"], look: "neptune",
-      fact: "<b>Methane</b> in Neptune's atmosphere absorbs red light, making it look blue." },
-    { q: "Which is the smallest planet?", a: "Mercury", w: ["Mars", "Venus", "Uranus"], look: "mercury",
-      fact: "Mercury is only slightly bigger than <b>Earth's Moon</b>." },
-    { q: "Which galaxy is our Solar System in?", a: "Milky Way", w: ["Andromeda", "Whirlpool", "Sombrero"], look: "sun",
-      fact: "The Milky Way holds an estimated <b>100–400 billion stars</b>." },
-    { q: "What are Jupiter, Saturn, Uranus and Neptune called?", a: "Giant planets", w: ["Rocky planets", "Dwarf planets", "Moons"], look: "jupiter",
-      fact: "Uranus and Neptune are often called <b>ice giants</b>." },
-  ];
+  const BANKS = {
+    easy: [
+      { q: "Which planet is biggest?", a: "Jupiter", w: ["Mars", "Venus", "Earth"], look: "jupiter",
+        fact: "Jupiter is so big that <b>over 1,300 Earths</b> could fit inside it." },
+      { q: "Which planet is known as the Red Planet?", a: "Mars", w: ["Jupiter", "Venus", "Mercury"], look: "mars",
+        fact: "Mars looks red because its soil is full of <b>iron oxide</b> — rust!" },
+      { q: "Which planet has the most famous rings?", a: "Saturn", w: ["Mars", "Mercury", "Earth"], look: "saturn",
+        fact: "Saturn's rings are mostly <b>chunks of ice and rock</b>." },
+      { q: "Which planet do we live on?", a: "Earth", w: ["Mars", "Venus", "Neptune"], look: "earth",
+        fact: "Earth is the only planet known to have <b>liquid water on its surface</b>." },
+      { q: "What is the Sun?", a: "A star", w: ["A planet", "A comet", "A moon"], look: "sun",
+        fact: "The Sun is a star, just like the ones you see at night — only <b>much closer</b>." },
+      { q: "What goes around the Earth every month?", a: "The Moon", w: ["The Sun", "Mars", "Jupiter"], look: "moon",
+        fact: "The Moon takes about <b>27 days</b> to orbit the Earth." },
+      { q: "How many planets are in our Solar System?", a: "8", w: ["9", "5", "12"], look: "earth",
+        fact: "There are <b>8 planets</b>. Pluto is now called a dwarf planet." },
+      { q: "Which planet is closest to the Sun?", a: "Mercury", w: ["Neptune", "Mars", "Earth"], look: "mercury",
+        fact: "Mercury zooms around the Sun in just <b>88 days</b>." },
+      { q: "What colour does Neptune look?", a: "Blue", w: ["Red", "Yellow", "Green"], look: "neptune",
+        fact: "<b>Methane gas</b> in Neptune's air makes it look blue." },
+      { q: "What do the planets travel around?", a: "The Sun", w: ["The Moon", "Earth", "Jupiter"], look: "sun",
+        fact: "All 8 planets <b>orbit the Sun</b>." },
+      { q: "What is a person who travels to space called?", a: "Astronaut", w: ["Pilot", "Sailor", "Astronomer"], look: "earth",
+        fact: "Astronauts on the Space Station see about <b>16 sunrises</b> every day." },
+      { q: "What do astronauts ride into space?", a: "A rocket", w: ["A plane", "A balloon", "A helicopter"], look: "earth",
+        fact: "A rocket must reach about <b>28,000 km/h</b> to stay in orbit." },
+      { q: "Which of these is the hottest?", a: "The Sun", w: ["The Moon", "Earth", "Mars"], look: "sun",
+        fact: "The surface of the Sun is about <b>5,500 °C</b>." },
+      { q: "What is our galaxy called?", a: "Milky Way", w: ["Chocolate Way", "Star Road", "Sky Path"], look: "star",
+        fact: "The Milky Way has <b>billions of stars</b>." },
+      { q: "What is Pluto called now?", a: "Dwarf planet", w: ["Giant planet", "Star", "Comet"], look: "pluto",
+        fact: "Pluto was renamed a <b>dwarf planet</b> in 2006." },
+      { q: "Which planet is third from the Sun?", a: "Earth", w: ["Mars", "Venus", "Saturn"], look: "earth",
+        fact: "Earth sits in the <b>“Goldilocks zone”</b> — not too hot, not too cold." },
+    ],
+    medium: [
+      { q: "Which is the hottest planet?", a: "Venus", w: ["Mercury", "Mars", "Jupiter"], look: "venus",
+        fact: "Venus's thick air traps heat, reaching about <b>465 °C</b>." },
+      { q: "Which planet is farthest from the Sun?", a: "Neptune", w: ["Uranus", "Saturn", "Jupiter"], look: "neptune",
+        fact: "Neptune takes <b>165 Earth years</b> to orbit the Sun once." },
+      { q: "What is Jupiter's Great Red Spot?", a: "A giant storm", w: ["A volcano", "A crater", "An ocean"], look: "jupiter",
+        fact: "The Great Red Spot is a storm <b>wider than Earth</b>." },
+      { q: "Which planet has the tallest volcano?", a: "Mars", w: ["Earth", "Venus", "Jupiter"], look: "mars",
+        fact: "Olympus Mons on Mars is nearly <b>3× taller than Everest</b>." },
+      { q: "How long does sunlight take to reach Earth?", a: "About 8 minutes", w: ["About 8 seconds", "About 8 hours", "About 8 days"], look: "sun",
+        fact: "Light travels <b>~150 million km</b> from the Sun to reach us." },
+      { q: "Which is the smallest planet?", a: "Mercury", w: ["Mars", "Venus", "Uranus"], look: "mercury",
+        fact: "Mercury is only a bit bigger than <b>Earth's Moon</b>." },
+      { q: "What lies between Mars and Jupiter?", a: "Asteroid belt", w: ["Kuiper belt", "Ring of Fire", "Orion belt"], look: "mars",
+        fact: "There are <b>millions of asteroids</b> in the belt." },
+      { q: "Which planet spins on its side?", a: "Uranus", w: ["Saturn", "Neptune", "Venus"], look: "uranus",
+        fact: "Uranus rolls around the Sun like a <b>bowling ball</b>." },
+      { q: "Who was the first person to walk on the Moon?", a: "Neil Armstrong", w: ["Buzz Aldrin", "Yuri Gagarin", "Sally Ride"], look: "moon",
+        fact: "“That's one small step for man…” — <b>July 20, 1969</b>." },
+      { q: "In which year did humans first land on the Moon?", a: "1969", w: ["1959", "1979", "1989"], look: "moon",
+        fact: "Apollo 11 landed in the <b>Sea of Tranquility</b>." },
+      { q: "Which planet has moons called Phobos and Deimos?", a: "Mars", w: ["Jupiter", "Earth", "Venus"], look: "mars",
+        fact: "Phobos and Deimos mean <b>“fear” and “dread”</b> in Greek." },
+      { q: "What is Saturn's largest moon?", a: "Titan", w: ["Europa", "Io", "Phobos"], look: "saturn",
+        fact: "Titan has <b>lakes of liquid methane</b>." },
+      { q: "Which planet would float in a giant bathtub?", a: "Saturn", w: ["Jupiter", "Earth", "Mercury"], look: "saturn",
+        fact: "Saturn is <b>less dense than water</b>!" },
+      { q: "What are Jupiter and Saturn mostly made of?", a: "Gas", w: ["Rock", "Ice cream", "Metal"], look: "jupiter",
+        fact: "Jupiter and Saturn are <b>gas giants</b>, mostly hydrogen and helium." },
+      { q: "Which planet is Earth's closest neighbour?", a: "Venus", w: ["Mars", "Jupiter", "Mercury"], look: "venus",
+        fact: "Venus is often called <b>Earth's twin</b> because of its size." },
+      { q: "What was the first human-made satellite?", a: "Sputnik 1", w: ["Hubble", "Apollo 11", "Voyager 1"], look: "earth",
+        fact: "Sputnik 1 launched in <b>1957</b>." },
+    ],
+    hard: [
+      { q: "Which planet has a day longer than its year?", a: "Venus", w: ["Mercury", "Mars", "Neptune"], look: "venus",
+        fact: "A Venus day is <b>243 Earth days</b>; its year is only 225." },
+      { q: "How many hours is a day on Jupiter?", a: "About 10", w: ["About 24", "About 40", "About 2"], look: "jupiter",
+        fact: "Jupiter is the <b>fastest-spinning</b> planet." },
+      { q: "Which moon is thought to hide an ocean under its ice?", a: "Europa", w: ["Phobos", "Titan", "Deimos"], look: "europa",
+        fact: "Europa's ocean may hold <b>twice as much water</b> as Earth's oceans." },
+      { q: "What share of the Solar System's mass is in the Sun?", a: "About 99.8%", w: ["About 50%", "About 75%", "About 90%"], look: "sun",
+        fact: "Everything else — planets, moons, asteroids — is just <b>0.2%</b>." },
+      { q: "What is the largest object in the asteroid belt?", a: "Ceres", w: ["Vesta", "Eros", "Pallas"], look: "pluto",
+        fact: "Ceres is a <b>dwarf planet</b> about 940 km wide." },
+      { q: "What does a light-year measure?", a: "Distance", w: ["Time", "Speed", "Brightness"], look: "star",
+        fact: "One light-year is about <b>9.46 trillion km</b>." },
+      { q: "What is the closest star to the Sun?", a: "Proxima Centauri", w: ["Sirius", "Polaris", "Betelgeuse"], look: "star",
+        fact: "Proxima Centauri is about <b>4.24 light-years</b> away." },
+      { q: "Which spacecraft is the farthest from Earth?", a: "Voyager 1", w: ["Voyager 2", "New Horizons", "Pioneer 10"], look: "neptune",
+        fact: "Voyager 1 left the Solar System's bubble in <b>2012</b>." },
+      { q: "Which planet has the fastest winds?", a: "Neptune", w: ["Jupiter", "Earth", "Saturn"], look: "neptune",
+        fact: "Neptune's winds top <b>2,000 km/h</b>." },
+      { q: "What is the region of icy bodies beyond Neptune called?", a: "Kuiper belt", w: ["Asteroid belt", "Oort ring", "Van Allen belt"], look: "pluto",
+        fact: "Pluto is one of the biggest <b>Kuiper belt</b> objects." },
+      { q: "How many Earth days is a year on Mercury?", a: "88", w: ["365", "59", "224"], look: "mercury",
+        fact: "Mercury is the <b>fastest planet</b>, at about 47 km/s." },
+      { q: "Which planet is tilted about 98°?", a: "Uranus", w: ["Neptune", "Saturn", "Mars"], look: "uranus",
+        fact: "Each Uranus pole gets <b>42 years</b> of sunlight, then 42 of darkness." },
+      { q: "What is the heart-shaped region on Pluto called?", a: "Tombaugh Regio", w: ["Olympus Mons", "Valles Marineris", "Mare Imbrium"], look: "pluto",
+        fact: "It's named after <b>Clyde Tombaugh</b>, who discovered Pluto in 1930." },
+      { q: "Which planet has the most volcanic moon, Io?", a: "Jupiter", w: ["Saturn", "Uranus", "Mars"], look: "jupiter",
+        fact: "Io has over <b>400 active volcanoes</b>." },
+      { q: "About how many Earths fit inside the Sun?", a: "1.3 million", w: ["1,300", "13,000", "130 million"], look: "sun",
+        fact: "The Sun is about <b>109 times wider</b> than Earth." },
+      { q: "Which planet has a hexagon-shaped storm at its pole?", a: "Saturn", w: ["Jupiter", "Neptune", "Uranus"], look: "saturn",
+        fact: "Saturn's hexagon is wider than <b>two Earths</b>." },
+    ],
+  };
 
   const RANKS = [
     { min: 0,  emoji: "🛰️", title: "Space Cadet" },
@@ -237,18 +303,58 @@
     window.scrollTo(0, 0);
   }
 
-  function getBest() { return parseInt(store.get(BEST_KEY, "0"), 10) || 0; }
-  function refreshHomeBest() {
-    const best = getBest();
-    $("home-best").hidden = best === 0;
-    $("home-best-val").textContent = best;
+  // ---------- high scores ----------
+  function getScores(diff) {
+    try {
+      const list = JSON.parse(store.get(SCORES_KEY(diff), "[]"));
+      return Array.isArray(list) ? list : [];
+    } catch { return []; }
+  }
+  // Returns the 1-based place of the new score, or 0 if it didn't make the table.
+  function addScore(diff, entry) {
+    const list = getScores(diff);
+    list.push(entry);
+    list.sort((a, b) => b.score - a.score || a.t - b.t);
+    const top = list.slice(0, TOP_SCORES);
+    store.set(SCORES_KEY(diff), JSON.stringify(top));
+    return top.indexOf(entry) + 1;
+  }
+  function renderScores(highlightT) {
+    const diff = state.diff;
+    $("scores-mode").textContent = DIFFICULTIES[diff].label;
+    const ol = $("score-list");
+    ol.innerHTML = "";
+    const list = getScores(diff);
+    if (!list.length) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "No scores yet. Press Start to set one!";
+      ol.appendChild(li);
+      return;
+    }
+    for (const s of list) {
+      const li = document.createElement("li");
+      if (s.t === highlightT) li.className = "fresh";
+      const date = new Date(s.t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      li.innerHTML = `<span class="meta">${s.correct}/${QUESTIONS_PER_ROUND} correct · ${date}</span><span class="pts">${s.score.toLocaleString()}</span>`;
+      ol.appendChild(li);
+    }
   }
 
   // ---------- game state ----------
   const state = {
-    round: [], index: 0, score: 0, streak: 0, bestStreak: 0, correct: 0,
-    timeLeft: SECONDS_PER_QUESTION, timerId: null, locked: false, nextId: null, startedAt: 0,
+    diff: DIFFICULTIES[store.get(DIFF_KEY, "easy")] ? store.get(DIFF_KEY, "easy") : "easy",
+    round: [], index: 0, score: 0, streak: 0, bestStreak: 0, correct: 0, totalTime: 0,
+    timeLeft: 0, timerId: null, locked: false, nextId: null, startedAt: 0, lastT: 0,
   };
+  const limit = () => DIFFICULTIES[state.diff].seconds;
+
+  function setDifficulty(diff) {
+    state.diff = diff;
+    store.set(DIFF_KEY, diff);
+    document.querySelectorAll(".diff").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.diff === diff)));
+    renderScores();
+  }
 
   const RING_LEN = 2 * Math.PI * 44;
   $("timer-ring").style.strokeDasharray = RING_LEN;
@@ -256,11 +362,11 @@
   function startGame() {
     sfx.click();
     clearTimers();
-    state.round = shuffle(BANK).slice(0, QUESTIONS_PER_ROUND).map((item) => ({
+    state.round = shuffle(BANKS[state.diff]).slice(0, QUESTIONS_PER_ROUND).map((item) => ({
       ...item,
       options: shuffle([item.a, ...item.w]),
     }));
-    Object.assign(state, { index: 0, score: 0, streak: 0, bestStreak: 0, correct: 0 });
+    Object.assign(state, { index: 0, score: 0, streak: 0, bestStreak: 0, correct: 0, totalTime: 0 });
     $("q-total").textContent = QUESTIONS_PER_ROUND;
     $("score").textContent = "0";
     $("streak").textContent = "0";
@@ -303,14 +409,20 @@
     startTimer();
   }
 
+  // Kahoot formula: points drop linearly from 1000 to 500 over the time limit.
+  function speedPoints(elapsed) {
+    const k = Math.min(Math.max(elapsed / limit(), 0), 1);
+    return Math.round(MAX_POINTS * (1 - k / 2));
+  }
+
   function startTimer() {
-    state.timeLeft = SECONDS_PER_QUESTION;
+    state.timeLeft = limit();
     state.startedAt = performance.now();
-    updateTimer(SECONDS_PER_QUESTION);
-    let lastWhole = SECONDS_PER_QUESTION;
+    updateTimer(limit());
+    let lastWhole = limit();
     state.timerId = setInterval(() => {
       const elapsed = (performance.now() - state.startedAt) / 1000;
-      state.timeLeft = Math.max(0, SECONDS_PER_QUESTION - elapsed);
+      state.timeLeft = Math.max(0, limit() - elapsed);
       updateTimer(state.timeLeft);
       const whole = Math.ceil(state.timeLeft);
       if (whole !== lastWhole) {
@@ -322,12 +434,13 @@
   }
 
   function updateTimer(t) {
-    const frac = t / SECONDS_PER_QUESTION;
+    const frac = t / limit();
     $("timer-ring").style.strokeDashoffset = RING_LEN * (1 - frac);
     $("timer-text").textContent = Math.ceil(t);
+    $("worth-val").textContent = speedPoints(limit() - t);
     const timer = $("timer");
-    timer.classList.toggle("warn", t <= 8 && t > 4);
-    timer.classList.toggle("danger", t <= 4 && t > 0);
+    timer.classList.toggle("warn", frac <= 0.5 && frac > 0.25);
+    timer.classList.toggle("danger", frac <= 0.25 && t > 0);
   }
 
   function clearTimers() {
@@ -336,22 +449,23 @@
     state.timerId = state.nextId = null;
   }
 
-  function multiplier() { return Math.min(1 + state.streak * 0.25, 3); }
-
   function answer(btn, text) {
     if (state.locked) return;
     state.locked = true;
     clearInterval(state.timerId);
+    const elapsed = (performance.now() - state.startedAt) / 1000;
+    state.totalTime += Math.min(elapsed, limit());
     const item = state.round[state.index];
     const buttons = [...$("options").children];
     buttons.forEach((b) => (b.disabled = true));
 
     if (text === item.a) {
+      const base = speedPoints(elapsed);
+      const bonus = Math.min(state.streak * STREAK_BONUS, STREAK_BONUS_CAP);
       state.streak++;
       state.correct++;
       state.bestStreak = Math.max(state.bestStreak, state.streak);
-      const timeBonus = Math.round(state.timeLeft * 10);
-      const gained = Math.round((100 + timeBonus) * multiplier());
+      const gained = base + bonus;
       state.score += gained;
 
       btn.classList.add("correct");
@@ -362,7 +476,8 @@
       const r = btn.getBoundingClientRect();
       burst(r.left + r.width / 2, r.top + r.height / 2, 30 + state.streak * 6, 8);
       floater(btn, `+${gained}`);
-      if (state.streak >= 2) floater(btn, `${state.streak} in a row! ×${multiplier().toFixed(2).replace(/\.?0+$/, "")}`, true, 34);
+      const label = elapsed < limit() * 0.25 ? "⚡ Lightning fast!" : elapsed < limit() * 0.5 ? "Quick!" : "Correct!";
+      floater(btn, bonus ? `${label} +${bonus} streak bonus` : label, true, 34);
       bump($("score"), state.score);
     } else {
       state.streak = 0;
@@ -383,6 +498,7 @@
     if (state.locked) return;
     state.locked = true;
     clearInterval(state.timerId);
+    state.totalTime += limit();
     const item = state.round[state.index];
     state.streak = 0;
     updateStreak();
@@ -393,8 +509,7 @@
     });
     sfx.wrong();
     flash("bad");
-    const qc = $("question-card");
-    floater(qc, "⏰ Time's up!", true, 0);
+    floater($("question-card"), "⏰ Time's up!", true, 0);
     showFactAndContinue(item);
   }
 
@@ -463,22 +578,24 @@
 
   function endGame() {
     clearTimers();
-    const prevBest = getBest();
-    const isBest = state.score > prevBest;
-    if (isBest) store.set(BEST_KEY, String(state.score));
-    const best = Math.max(prevBest, state.score);
+    const entry = { score: state.score, correct: state.correct, t: Date.now() };
+    const place = state.score > 0 ? addScore(state.diff, entry) : 0;
+    state.lastT = place ? entry.t : 0;
+    const isBest = place === 1;
 
     const rank = RANKS.filter((r) => state.correct >= r.min).pop();
     $("rank-emoji").textContent = rank.emoji;
     $("rank-title").textContent = rank.title;
+    $("rank-sub").textContent = DIFFICULTIES[state.diff].label;
     $("new-best").hidden = !isBest;
+    $("placed").textContent = place > 1 ? `You placed #${place} on the ${DIFFICULTIES[state.diff].label} high scores!` : "";
     $("stat-correct").textContent = `${state.correct}/${QUESTIONS_PER_ROUND}`;
     $("stat-streak").textContent = state.bestStreak;
-    $("stat-best").textContent = best;
+    $("stat-speed").textContent = (state.totalTime / QUESTIONS_PER_ROUND).toFixed(1) + "s";
     $("final-score").textContent = "0";
 
     show("results");
-    refreshHomeBest();
+    renderScores(state.lastT);
     warp = 1;
 
     // Count up the final score.
@@ -486,7 +603,7 @@
     const start = performance.now();
     (function step(now) {
       const k = Math.min((now - start) / 1200, 1);
-      el.textContent = Math.round(state.score * (1 - Math.pow(1 - k, 3)));
+      el.textContent = Math.round(state.score * (1 - Math.pow(1 - k, 3))).toLocaleString();
       if (k < 1) requestAnimationFrame(step);
     })(start);
 
@@ -500,50 +617,37 @@
     }
   }
 
-  function quit() {
+  function goHome() {
     clearTimers();
     sfx.click();
+    renderScores(state.lastT);
     show("home");
-  }
-
-  // ---------- modal ----------
-  let lastFocus = null;
-  function openHowto() {
-    sfx.click();
-    lastFocus = document.activeElement;
-    $("modal-howto").hidden = false;
-    $("btn-close-howto").focus();
-  }
-  function closeHowto() {
-    sfx.click();
-    $("modal-howto").hidden = true;
-    if (lastFocus) lastFocus.focus();
   }
 
   // ---------- wire up ----------
   $("btn-play").addEventListener("click", startGame);
   $("btn-again").addEventListener("click", startGame);
-  $("btn-home").addEventListener("click", () => { sfx.click(); show("home"); });
-  $("btn-quit").addEventListener("click", quit);
-  $("btn-howto").addEventListener("click", openHowto);
-  $("btn-close-howto").addEventListener("click", closeHowto);
-  $("modal-howto").addEventListener("click", (e) => { if (e.target.id === "modal-howto") closeHowto(); });
+  $("btn-home").addEventListener("click", goHome);
+  $("btn-quit").addEventListener("click", goHome);
+  document.querySelectorAll(".diff").forEach((b) =>
+    b.addEventListener("click", () => { sfx.click(); setDifficulty(b.dataset.diff); })
+  );
 
-  const toggle = $("sound-toggle");
-  toggle.checked = soundOn;
-  toggle.addEventListener("change", () => {
-    soundOn = toggle.checked;
+  const soundBtn = $("sound-btn");
+  const paintSound = () => {
+    soundBtn.textContent = soundOn ? "🔊" : "🔇";
+    soundBtn.setAttribute("aria-pressed", String(soundOn));
+  };
+  soundBtn.addEventListener("click", () => {
+    soundOn = !soundOn;
     store.set(SOUND_KEY, soundOn ? "1" : "0");
+    paintSound();
     sfx.click();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (!$("modal-howto").hidden) {
-      if (e.key === "Escape") closeHowto();
-      return;
-    }
     if (!$("screen-game").classList.contains("active")) return;
-    if (e.key === "Escape") return quit();
+    if (e.key === "Escape") return goHome();
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= 4) {
       const b = $("options").children[n - 1];
@@ -555,5 +659,6 @@
   resizeStars();
   resizeConfetti();
   requestAnimationFrame(drawStars);
-  refreshHomeBest();
+  paintSound();
+  setDifficulty(state.diff);
 })();

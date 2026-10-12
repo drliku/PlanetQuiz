@@ -2,10 +2,12 @@
 
 How well do you know the Solar System? Answer against the clock and beat your best score.
 
-- 10 random questions per round from a bank of 24
-- 15-second timer per question — faster answers earn a bigger bonus
-- Streak multiplier (up to ×3), animated planets, confetti, sound effects
-- High score saved in your browser
+- Easy (20s), Medium (15s) and Hard (12s) modes, each with its own question set
+- 10 random questions per round
+- Kahoot-style scoring: an instant answer is worth 1,000 points, dropping to 500 at the buzzer
+- Streak bonus of +100 per answer in a row (up to +500)
+- Top 5 high scores per difficulty, saved in your browser
+- Animated planets, confetti and sound effects
 
 ## Play
 
